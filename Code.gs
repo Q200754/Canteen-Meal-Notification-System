@@ -1,10 +1,10 @@
 const SHEET_NAME = 'Events';
 const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE'; // ใส่ Access Token จาก LINE Developers
-const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE'; // ใส่ ID ของกลุ่ม LINE หรือ User ID
-const ADMIN_PIN = '1234'; // ตั้งรหัสผ่าน PIN แอดมินตรงนี้
+const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE'; // ใส่ ID กลุ่ม หรือ User ID ของ LINE
+const ADMIN_PIN = '1234'; // ตั้งรหัส PIN แอดมินสำหรับกรอก/แก้ไขข้อมูล
 
 function doGet(e) {
-  const page = e.parameter.page;
+  const page = e && e.parameter ? e.parameter.page : '';
   if (page === 'admin') {
     return HtmlService.createTemplateFromFile('Admin')
       .evaluate()
@@ -26,7 +26,7 @@ function checkAdminPin(pin) {
   return pin === ADMIN_PIN;
 }
 
-// ดึงรายการข้อมูลทั้งหมดจาก Google Sheet
+// ดึงรายการข้อมูลทั้งหมดจาก Google Sheets
 function getCanteenEvents() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) return [];
