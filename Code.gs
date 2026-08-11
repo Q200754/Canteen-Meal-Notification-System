@@ -1,7 +1,7 @@
 const SHEET_NAME = 'Events';
-const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE'; // ใส่ Access Token จาก LINE Developers
-const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE'; // ใส่ ID กลุ่ม หรือ User ID ของ LINE
-const ADMIN_PIN = '1234'; // ตั้งรหัส PIN แอดมินสำหรับกรอก/แก้ไขข้อมูล
+const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE';
+const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE';
+const ADMIN_PIN = '1234';
 
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
@@ -25,12 +25,10 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-// ตรวจสอบรหัสผ่าน PIN แอดมิน
 function checkAdminPin(pin) {
   return pin === ADMIN_PIN;
 }
 
-// ดึงรายการข้อมูลทั้งหมดจาก Google Sheets
 function getCanteenEvents() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) return [];
@@ -56,57 +54,75 @@ function getCanteenEvents() {
   });
 }
 
-// บันทึก / แก้ไขข้อมูลงานจัดเลี้ยง
+// บันทึกข้อมูลแบบรวดเร็ว ไม่รอกระบวนการ LINE
 function saveCanteenEvent(form, pin) {
   if (!checkAdminPin(pin)) {
     return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
   }
 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  const id = form.id || 'PRTC-EVT-' + new Date().getTime();
-  
-  let targetRow = -1;
-  if (form.id) {
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(form.id)) {
-        targetRow = i + 1;
-        break;
+  try {
+    let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    
+    // ถ้ายังไม่มีแผ่นงาน Events ให้สร้างให้อัตโนมัติทันที
+    if (!sheet) {
+      sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_NAME);
+      sheet.appendRow(['ID', 'Date', 'Time', 'Occasion', 'GuestName', 'HasFamily', 'GuestCount', 'MainMenu', 'SnackDessert', 'GuestStatus', 'Note']);
+    }
+
+    const id = form.id || 'PRTC-EVT-' + new Date().getTime();
+    
+    let targetRow = -1;
+    if (form.id) {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][0]) === String(form.id)) {
+          targetRow = i + 1;
+          break;
+        }
       }
     }
+
+    const rowData = [
+      id,
+      form.date,
+      form.time,
+      form.occasion,
+      form.guestName,
+      form.hasFamily ? 'ใช่' : 'ไม่ใช่',
+      form.guestCount,
+      form.mainMenu,
+      form.snackDessert,
+      form.guestStatus,
+      form.note || ''
+    ];
+
+    if (targetRow > 0) {
+      sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    // ส่ง LINE แบบปลอดภัย (ถ้าพังก็ไม่ทำให้หน้าเว็บค้าง)
+    try {
+      sendLineNotification(form);
+    } catch(lineErr) {
+      Logger.log('Line Error Skipped: ' + lineErr);
+    }
+
+    return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
+  } catch (err) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + err.toString() };
   }
-
-  const rowData = [
-    id,
-    form.date,
-    form.time,
-    form.occasion,
-    form.guestName,
-    form.hasFamily ? 'ใช่' : 'ไม่ใช่',
-    form.guestCount,
-    form.mainMenu,
-    form.snackDessert,
-    form.guestStatus,
-    form.note || ''
-  ];
-
-  if (targetRow > 0) {
-    sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
-  } else {
-    sheet.appendRow(rowData);
-  }
-
-  sendLineNotification(form);
-  return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
 }
 
-// ลบรายการจัดเลี้ยง
 function deleteCanteenEvent(id, pin) {
   if (!checkAdminPin(pin)) {
     return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
   }
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) return { success: false, message: 'ไม่พบแผ่นงาน' };
+
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(id)) {
@@ -117,8 +133,8 @@ function deleteCanteenEvent(id, pin) {
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
 }
 
-// ส่งแจ้งเตือนผ่าน LINE Messaging API (Flex Message)
 function sendLineNotification(data) {
+  // ข้ามการส่งทันทีถ้าไม่ได้ตั้งค่า Token จริง เพื่อป้องกันการค้าง
   if (!LINE_CHANNEL_ACCESS_TOKEN || LINE_CHANNEL_ACCESS_TOKEN.includes('YOUR_')) return;
 
   let statusColor = '#28a745';
@@ -156,16 +172,13 @@ function sendLineNotification(data) {
     }
   };
 
-  try {
-    UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
-      'method': 'post',
-      'headers': {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN
-      },
-      'payload': JSON.stringify({ "to": TARGET_USER_OR_GROUP_ID, "messages": [flexMessage] })
-    });
-  } catch (err) {
-    Logger.log('LINE Error: ' + err.toString());
-  }
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    'method': 'post',
+    'headers': {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN
+    },
+    'payload': JSON.stringify({ "to": TARGET_USER_OR_GROUP_ID, "messages": [flexMessage] }),
+    'muteHttpExceptions': true
+  });
 }
