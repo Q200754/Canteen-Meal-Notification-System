@@ -30,9 +30,9 @@
         <div class="col-md-4">
           <select id="statusFilter" class="form-select" onchange="filterEvents()">
             <option value="ALL">สถานะทั้งหมด</option>
-            <option value="มา">เฉพาะยืนยันแล้ว (มา)</option>
-            <option value="รอยืนยัน">รอยืนยัน</option>
-            <option value="ไม่มา/ยกเลิก">ไม่มา/ยกเลิก</option>
+            <option value="แขกมา">แขกมา</option>
+            <option value="แขกไม่สะดวกมา">แขกไม่สะดวกมา</option>
+            <option value="แขกยกเลิก">แขกยกเลิก</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -68,7 +68,10 @@
       const statusValue = document.getElementById('statusFilter').value;
       const filtered = allEvents.filter(e => {
         const matchesSearch = (e.occasion + e.guestName + e.mainMenu + e.snackDessert + e.note).toLowerCase().includes(searchText);
-        const matchesStatus = statusValue === 'ALL' || e.guestStatus === statusValue;
+        const matchesStatus = statusValue === 'ALL' || e.guestStatus === statusValue || 
+                              (statusValue === 'แขกมา' && e.guestStatus === 'มา') ||
+                              (statusValue === 'แขกไม่สะดวกมา' && e.guestStatus === 'ไม่มา') ||
+                              (statusValue === 'แขกยกเลิก' && (e.guestStatus === 'ยกเลิกงาน' || e.guestStatus === 'ไม่มา/ยกเลิก'));
         return matchesSearch && matchesStatus;
       });
       document.getElementById('eventCount').innerText = `${filtered.length} รายการ`;
@@ -81,27 +84,35 @@
         container.innerHTML = '<div class="alert alert-light text-center border shadow-sm">ไม่พบรายการจัดเลี้ยงอาหาร</div>';
         return;
       }
-      container.innerHTML = events.map(e => `
-        <div class="col-12">
-          <div class="card p-3 p-md-4 shadow-sm border-0">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="badge ${e.guestStatus === 'มา' ? 'bg-success' : e.guestStatus === 'รอยืนยัน' ? 'bg-warning text-dark' : 'bg-danger'} px-3 py-2 rounded-pill">${e.guestStatus}</span>
-              <small class="text-muted fw-semibold">📅 ${e.date} | ⏰ ${e.time}</small>
+      container.innerHTML = events.map(e => {
+        let badgeStyle = 'bg-success';
+        if (e.guestStatus === 'แขกไม่สะดวกมา' || e.guestStatus === 'ไม่มา') badgeStyle = 'text-white';
+        if (e.guestStatus === 'แขกยกเลิก' || e.guestStatus === 'ยกเลิกงาน' || e.guestStatus === 'ไม่มา/ยกเลิก') badgeStyle = 'bg-danger';
+
+        let customBg = (e.guestStatus === 'แขกไม่สะดวกมา' || e.guestStatus === 'ไม่มา') ? 'style="background-color: #fd7e14;"' : '';
+
+        return `
+          <div class="col-12">
+            <div class="card p-3 p-md-4 shadow-sm border-0">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge ${badgeStyle} px-3 py-2 rounded-pill" ${customBg}>${e.guestStatus}</span>
+                <small class="text-muted fw-semibold">📅 ${e.date} | ⏰ ${e.time}</small>
+              </div>
+              <h5 class="fw-bold text-dark mb-2">${e.occasion}</h5>
+              <p class="text-muted mb-2">
+                <strong>เจ้าภาพ/แขก:</strong> ${e.guestName} (${e.guestCount} ท่าน)
+                ${(e.hasFamily === 'มี' || e.hasFamily === 'ใช่') ? '<span class="badge bg-info-subtle text-info-emphasis ms-2">👨‍👩‍👧‍👦 มีครอบครัว/ผู้ติดตาม</span>' : ''}
+              </p>
+              <hr class="my-2">
+              <div class="row g-2 mt-1">
+                <div class="col-md-6"><small class="text-muted d-block">🍱 รายการอาหารหลัก:</small><strong class="text-success">${e.mainMenu}</strong></div>
+                <div class="col-md-6"><small class="text-muted d-block">🍦 ของหวาน / ของทานเล่น:</small><strong class="text-warning-emphasis">${e.snackDessert || '-'}</strong></div>
+              </div>
+              ${e.note ? `<div class="mt-2 text-secondary small">📌 <strong>หมายเหตุ:</strong> ${e.note}</div>` : ''}
             </div>
-            <h5 class="fw-bold text-dark mb-2">${e.occasion}</h5>
-            <p class="text-muted mb-2">
-              <strong>เจ้าภาพ/แขก:</strong> ${e.guestName} (${e.guestCount} ท่าน)
-              ${(e.hasFamily === 'มี' || e.hasFamily === 'ใช่') ? '<span class="badge bg-info-subtle text-info-emphasis ms-2">👨‍👩‍👧‍👦 มีครอบครัว/ผู้ติดตาม</span>' : ''}
-            </p>
-            <hr class="my-2">
-            <div class="row g-2 mt-1">
-              <div class="col-md-6"><small class="text-muted d-block">🍱 รายการอาหารหลัก:</small><strong class="text-success">${e.mainMenu}</strong></div>
-              <div class="col-md-6"><small class="text-muted d-block">🍦 ของหวาน / ของทานเล่น:</small><strong class="text-warning-emphasis">${e.snackDessert || '-'}</strong></div>
-            </div>
-            ${e.note ? `<div class="mt-2 text-secondary small">📌 <strong>หมายเหตุ:</strong> ${e.note}</div>` : ''}
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
     window.onload = loadEvents;
   </script>
