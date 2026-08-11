@@ -8,26 +8,33 @@ function doGet(e) {
     var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
     var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
     
-    // โหมด API สำหรับดึงข้อมูล JSON
+    // API สำหรับส่งข้อมูล JSON ให้ Vercel
     if (action === 'getEvents') {
       var data = getCanteenEvents();
       return ContentService.createTextOutput(JSON.stringify(data))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // เลือกไฟล์ HTML ตาม Parameter
-    var targetFile = (page === 'admin') ? 'Admin' : 'Index';
+    // กำหนดชื่อไฟล์ตาม Parameter
+    var fileName = (page === 'admin') ? 'Admin' : 'Index';
+    var pageTitle = (page === 'admin') 
+      ? 'PRTC-CCIS | ระบบจัดการหลังบ้านแอดมิน' 
+      : 'PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา';
 
-    return HtmlService.createHtmlOutputFromFile(targetFile)
-      .setTitle('PRTC-CCIS | วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา')
+    // ใช้ createTemplateFromFile และ evaluate เพื่อรันส่วนประกอบ HTML ให้สมบูรณ์
+    return HtmlService.createTemplateFromFile(fileName)
+      .evaluate()
+      .setTitle(pageTitle)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
   } catch (err) {
+    // หากหาไฟล์ไม่เจอ หรือมีสคริปต์ใน HTML พัง ให้พ่น Error ออกหน้าจอแทนการปล่อยหน้าขาว
     return HtmlService.createHtmlOutput(
-      '<div style="padding: 30px; font-family: sans-serif; text-align: center;">' +
-      '<h3 style="color: #dc3545;">❌ ไม่สามารถโหลดหน้าเว็บได้</h3>' +
-      '<p><strong>รายละเอียดข้อผิดพลาด:</strong> ' + err.toString() + '</p>' +
+      '<div style="padding: 30px; font-family: sans-serif; text-align: center; color: #721c24; background-color: #f8d7da; border-radius: 8px; margin: 20px;">' +
+      '<h3 style="margin-top: 0;">❌ เกิดข้อผิดพลาดในการโหลดหน้าเว็บ (' + (e.parameter.page || 'index') + ')</h3>' +
+      '<p><strong>รายละเอียด:</strong> ' + err.toString() + '</p>' +
+      '<p style="font-size: 0.9em; color: #6c757d;">โปรดตรวจสอบว่าฝั่งซ้ายมือมีไฟล์ <b>Index.html</b> และ <b>Admin.html</b> (ตัวพิมพ์ใหญ่-เล็กตรงเป๊ะ) แล้วหรือยัง</p>' +
       '</div>'
     );
   }
