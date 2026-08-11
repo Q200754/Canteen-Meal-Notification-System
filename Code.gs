@@ -4,7 +4,6 @@ const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE'; // ใส่ ID กลุ
 const ADMIN_PIN = '1234'; // ตั้งรหัส PIN แอดมินสำหรับกรอก/แก้ไขข้อมูล
 
 function doGet(e) {
-  // ดึงค่าจากพารามิเตอร์ ?page=...
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
   
   if (page === 'admin') {
@@ -15,7 +14,6 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
   
-  // หน้าเริ่มต้น (Index.html)
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา')
