@@ -4,26 +4,33 @@ const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE';
 const ADMIN_PIN = '1234';
 
 function doGet(e) {
-  var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
-  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
-  
-  // โหมดดึงข้อมูล JSON สำหรับ Vercel/Fetch
-  if (action === 'getEvents') {
-    var data = getCanteenEvents();
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
+  try {
+    var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
+    
+    // โหมด API สำหรับดึงข้อมูล JSON
+    if (action === 'getEvents') {
+      var data = getCanteenEvents();
+      return ContentService.createTextOutput(JSON.stringify(data))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // เลือกไฟล์ HTML ตาม Parameter
+    var targetFile = (page === 'admin') ? 'Admin' : 'Index';
+
+    return HtmlService.createHtmlOutputFromFile(targetFile)
+      .setTitle('PRTC-CCIS | วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+
+  } catch (err) {
+    return HtmlService.createHtmlOutput(
+      '<div style="padding: 30px; font-family: sans-serif; text-align: center;">' +
+      '<h3 style="color: #dc3545;">❌ ไม่สามารถโหลดหน้าเว็บได้</h3>' +
+      '<p><strong>รายละเอียดข้อผิดพลาด:</strong> ' + err.toString() + '</p>' +
+      '</div>'
+    );
   }
-
-  // กำหนดไฟล์ HTML ที่จะโหลด (ใช้ createHtmlOutputFromFile เพื่อความรวดเร็วและไม่ค้างหน้า Loading)
-  var fileName = (page === 'admin') ? 'Admin' : 'Index';
-  var pageTitle = (page === 'admin') 
-    ? 'PRTC-CCIS | ระบบจัดการหลังบ้านแอดมิน' 
-    : 'PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา';
-
-  return HtmlService.createHtmlOutputFromFile(fileName)
-    .setTitle(pageTitle)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function checkAdminPin(pin) {
