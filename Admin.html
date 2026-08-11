@@ -292,7 +292,6 @@
         note: document.getElementById('note').value
       };
 
-      // Timer ป้องกันปุ่มค้างถ้าระบบใช้เวลานานเกิน 12 วินาที
       const timeoutTimer = setTimeout(() => {
         if (btn.disabled) {
           alert('การเชื่อมต่อใช้เวลานานเกินไป กรุณาตรวจสอบการเชื่อมต่อหรือเปิดผ่าน URL ของ Apps Script โดยตรง');
