@@ -137,11 +137,11 @@ function deleteCanteenEvent(id, username, password) {
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
 }
 
-// ฟังก์ชันส่งแจ้งเตือนเข้า LINE การ์ดแบบใหม่ตามที่ต้องการ
+// ฟังก์ชันส่งแจ้งเตือนเข้า LINE การ์ดแบบอัปเดตหัวข้อและสถานะ
 function sendLineNotification(data) {
   if (!LINE_CHANNEL_ACCESS_TOKEN || !TARGET_USER_OR_GROUP_ID) return;
   
-  let headerColor = '#004085'; // น้ำเงินเข้มวิทยาลัย
+  let headerColor = '#004085'; // น้ำเงินเข้มวิทยาลัย (แขกมา)
   if (data.guestStatus === 'แขกไม่สะดวกมา' || data.guestStatus === 'ไม่มา') headerColor = '#fd7e14'; // ส้ม
   if (data.guestStatus === 'แขกยกเลิก' || data.guestStatus === 'ยกเลิกงาน') headerColor = '#dc3545'; // แดง
 
@@ -151,7 +151,7 @@ function sendLineNotification(data) {
 
   const flexMessage = {
     "type": "flex",
-    "altText": `[PRTC-CCIS] แจ้งการจัดเลี้ยง: ${data.occasion}`,
+    "altText": `[PRTC-CCIS] ประชาสัมพันธ์: ${data.occasion}`,
     "contents": {
       "type": "bubble",
       "header": {
@@ -160,7 +160,8 @@ function sendLineNotification(data) {
         "backgroundColor": headerColor,
         "paddingAll": "15px",
         "contents": [
-          { "type": "text", "text": "📢 PRTC Canteen Catering Alert", "color": "#ffffff", "weight": "bold", "size": "md" }
+          { "type": "text", "text": "📢 ขออนุญาตประชาสัมพันธ์เพื่อแจ้งให้ทราบ", "color": "#ffffff", "weight": "bold", "size": "sm", "wrap": true },
+          { "type": "text", "text": `สถานะ: ${data.guestStatus}`, "color": "#ffffff", "size": "xs", "margin": "xs" }
         ]
       },
       "body": {
