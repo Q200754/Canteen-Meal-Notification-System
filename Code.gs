@@ -8,11 +8,10 @@ function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
   var callback = (e && e.parameter && e.parameter.callback) ? e.parameter.callback : '';
   
-  // รองรับการดึงข้อมูล JSON / JSONP ข้ามโดเมนสำหรับ Vercel
+  // รองรับการดึงข้อมูล JSONP สำหรับ Vercel
   if (action === 'getEvents') {
     var data = getCanteenEvents();
     if (callback) {
-      // ใช้ JSONP เพื่อหลีกเลี่ยงปัญหา CORS บล็อกบน Vercel
       return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
         .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
