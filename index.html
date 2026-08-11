@@ -70,10 +70,16 @@
       }
     }
 
+    // Callback รับข้อมูลจาก JSONP
+    function handleJSONPResponse(data) {
+      allEvents = data || [];
+      filterEvents();
+    }
+
     function loadEvents() {
       document.getElementById('eventsList').innerHTML = '<div class="text-center py-5 text-muted">กำลังดึงข้อมูลระบบ PRTC-CCIS...</div>';
 
-      // กรณีเปิดบน Google Apps Script โดยตรง
+      // กรณีเปิดบน Apps Script โดยตรง
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(data => {
@@ -82,16 +88,17 @@
           })
           .getCanteenEvents();
       } else {
-        // กรณีเปิดบน Vercel ให้ดึงแบบ fetch API
-        fetch(GAS_API_URL + '?action=getEvents')
-          .then(res => res.json())
-          .then(data => {
-            allEvents = data || [];
-            filterEvents();
-          })
-          .catch(err => {
-            document.getElementById('eventsList').innerHTML = '<div class="alert alert-danger text-center border shadow-sm">เกิดข้อผิดพลาดในการโหลดข้อมูลผ่าน Vercel</div>';
-          });
+        // กรณีเปิดบน Vercel ให้ดึงข้อมูลผ่าน JSONP สคริปต์แท็ก (ทะลุ CORS 100%)
+        const oldScript = document.getElementById('jsonp-script');
+        if (oldScript) oldScript.remove();
+
+        const script = document.createElement('script');
+        script.id = 'jsonp-script';
+        script.src = GAS_API_URL + '?action=getEvents&callback=handleJSONPResponse';
+        script.onerror = function() {
+          document.getElementById('eventsList').innerHTML = '<div class="alert alert-danger text-center border shadow-sm">ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Google Apps Script ได้</div>';
+        };
+        document.body.appendChild(script);
       }
     }
 
