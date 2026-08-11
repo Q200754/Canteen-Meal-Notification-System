@@ -177,17 +177,26 @@
       const pin = document.getElementById('pinInput').value;
       if (!pin) return alert('กรุณากรอกรหัส PIN');
 
-      google.script.run.withSuccessHandler(isValid => {
-        if (isValid) {
-          currentPin = pin;
-          document.getElementById('authScreen').style.display = 'none';
-          document.getElementById('adminPanel').style.display = 'block';
-          document.getElementById('date').value = new Date().toISOString().split('T')[0];
-          loadAdminEvents();
-        } else {
-          alert('รหัส PIN ไม่ถูกต้อง!');
-        }
-      }).checkAdminPin(pin);
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        return alert('ไม่สามารถเชื่อมต่อระบบ Google Apps Script ได้');
+      }
+
+      google.script.run
+        .withSuccessHandler(isValid => {
+          if (isValid) {
+            currentPin = pin;
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+            loadAdminEvents();
+          } else {
+            alert('รหัส PIN ไม่ถูกต้อง!');
+          }
+        })
+        .withFailureHandler(err => {
+          alert('เกิดข้อผิดพลาด: ' + (err.message || err.toString()));
+        })
+        .checkAdminPin(pin);
     }
 
     function logoutAdmin() {
@@ -198,10 +207,17 @@
     }
 
     function loadAdminEvents() {
-      google.script.run.withSuccessHandler(data => {
-        adminEvents = data || [];
-        renderAdminTable(adminEvents);
-      }).getCanteenEvents();
+      if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+      google.script.run
+        .withSuccessHandler(data => {
+          adminEvents = data || [];
+          renderAdminTable(adminEvents);
+        })
+        .withFailureHandler(err => {
+          console.error('Error loading events:', err);
+        })
+        .getCanteenEvents();
     }
 
     function renderAdminTable(events) {
@@ -276,8 +292,26 @@
         note: document.getElementById('note').value
       };
 
+      // Timer ป้องกันปุ่มค้างถ้าระบบใช้เวลานานเกิน 12 วินาที
+      const timeoutTimer = setTimeout(() => {
+        if (btn.disabled) {
+          alert('การเชื่อมต่อใช้เวลานานเกินไป กรุณาตรวจสอบการเชื่อมต่อหรือเปิดผ่าน URL ของ Apps Script โดยตรง');
+          btn.disabled = false;
+          btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
+        }
+      }, 12000);
+
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        clearTimeout(timeoutTimer);
+        alert('ไม่สามารถเรียกใช้งาน Google Apps Script ได้');
+        btn.disabled = false;
+        btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
+        return;
+      }
+
       google.script.run
         .withSuccessHandler(res => {
+          clearTimeout(timeoutTimer);
           alert(res.message);
           if (res.success) {
             resetAdminForm();
@@ -287,7 +321,8 @@
           btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
         })
         .withFailureHandler(err => {
-          alert('เกิดข้อผิดพลาด: ' + err.message);
+          clearTimeout(timeoutTimer);
+          alert('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: ' + (err.message || err.toString()));
           btn.disabled = false;
           btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
         })
@@ -296,13 +331,19 @@
 
     function deleteEvent(id) {
       if (!confirm('คุณต้องการลบรายการจัดเลี้ยงนี้ใช่หรือไม่?')) return;
+      if (typeof google === 'undefined' || !google.script || !google.script.run) return;
 
-      google.script.run.withSuccessHandler(res => {
-        alert(res.message);
-        if (res.success) {
-          loadAdminEvents();
-        }
-      }).deleteCanteenEvent(id, currentPin);
+      google.script.run
+        .withSuccessHandler(res => {
+          alert(res.message);
+          if (res.success) {
+            loadAdminEvents();
+          }
+        })
+        .withFailureHandler(err => {
+          alert('เกิดข้อผิดพลาดในการลบ: ' + (err.message || err.toString()));
+        })
+        .deleteCanteenEvent(id, currentPin);
     }
   </script>
 </body>
