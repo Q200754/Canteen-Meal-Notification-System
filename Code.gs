@@ -82,7 +82,7 @@ function saveCanteenEvent(form, pin) {
 
     const rowData = [
       id, form.date, form.time, form.occasion, form.guestName,
-      form.hasFamily ? 'ใช่' : 'ไม่ใช่', form.guestCount,
+      form.hasFamily ? 'มี' : 'ไม่มี', form.guestCount,
       form.mainMenu, form.snackDessert, form.guestStatus, form.note || ''
     ];
 
