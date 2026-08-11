@@ -118,13 +118,13 @@
             <input type="text" class="form-control" id="snackDessert" name="snackDessert" placeholder="เช่น ไอศกรีมกะทิสด, ผลไม้ตามฤดูกาล">
           </div>
 
-          <!-- Row 6: Guest Status -->
+          <!-- Row 6: Guest Status (ปรับเป็น 3 ตัวเลือกหลัก) -->
           <div class="mb-3">
-            <label class="form-label">📌 สถานะการยืนยันของแขก <span class="text-danger">*</span></label>
+            <label class="form-label">📌 สถานะการมาของแขก <span class="text-danger">*</span></label>
             <select class="form-select fw-medium" id="guestStatus" name="guestStatus">
-              <option value="มา" selected class="text-success">✅ มา (ยืนยันแล้ว)</option>
-              <option value="รอยืนยัน" class="text-warning">⏳ รอยืนยัน</option>
-              <option value="ไม่มา/ยกเลิก" class="text-danger">❌ ไม่มา / ยกเลิก</option>
+              <option value="แขกมา" selected class="text-success">✅ แขกมา</option>
+              <option value="แขกไม่สะดวกมา" style="color: #fd7e14;">🚫 แขกไม่สะดวกมา</option>
+              <option value="แขกยกเลิก" class="text-danger">❌ แขกยกเลิก</option>
             </select>
           </div>
 
@@ -225,22 +225,30 @@
         return;
       }
 
-      tbody.innerHTML = events.map(e => `
-        <tr>
-          <td><small class="fw-bold">${e.date}</small><br><small class="text-muted">${e.time}</small></td>
-          <td><strong>${e.occasion}</strong></td>
-          <td><small>${e.guestName} (${e.guestCount} คน)</small></td>
-          <td>
-            <span class="badge ${e.guestStatus === 'มา' ? 'bg-success' : e.guestStatus === 'รอยืนยัน' ? 'bg-warning text-dark' : 'bg-danger'}">
-              ${e.guestStatus}
-            </span>
-          </td>
-          <td style="text-align: center;">
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${e.id}')" title="แก้ไข">✏️</button>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${e.id}')" title="ลบ">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = events.map(e => {
+        let badgeStyle = 'bg-success';
+        if (e.guestStatus === 'แขกไม่สะดวกมา' || e.guestStatus === 'ไม่มา') badgeStyle = 'text-white';
+        if (e.guestStatus === 'แขกยกเลิก' || e.guestStatus === 'ยกเลิกงาน' || e.guestStatus === 'ไม่มา/ยกเลิก') badgeStyle = 'bg-danger';
+
+        let customBg = (e.guestStatus === 'แขกไม่สะดวกมา' || e.guestStatus === 'ไม่มา') ? 'style="background-color: #fd7e14;"' : '';
+
+        return `
+          <tr>
+            <td><small class="fw-bold">${e.date}</small><br><small class="text-muted">${e.time}</small></td>
+            <td><strong>${e.occasion}</strong></td>
+            <td><small>${e.guestName} (${e.guestCount} คน)</small></td>
+            <td>
+              <span class="badge ${badgeStyle}" ${customBg}>
+                ${e.guestStatus}
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${e.id}')" title="แก้ไข">✏️</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${e.id}')" title="ลบ">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function editEvent(id) {
@@ -256,7 +264,13 @@
       document.getElementById('hasFamily').checked = (item.hasFamily === 'มี' || item.hasFamily === 'ใช่');
       document.getElementById('mainMenu').value = item.mainMenu;
       document.getElementById('snackDessert').value = item.snackDessert;
-      document.getElementById('guestStatus').value = item.guestStatus;
+      
+      let statusVal = item.guestStatus;
+      if (statusVal === 'มา') statusVal = 'แขกมา';
+      if (statusVal === 'ไม่มา') statusVal = 'แขกไม่สะดวกมา';
+      if (statusVal === 'ยกเลิกงาน' || statusVal === 'ไม่มา/ยกเลิก') statusVal = 'แขกยกเลิก';
+
+      document.getElementById('guestStatus').value = statusVal;
       document.getElementById('note').value = item.note || '';
 
       document.getElementById('formTitle').innerText = '✏️ แก้ไขข้อมูลการจัดเลี้ยง';
