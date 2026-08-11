@@ -33,7 +33,7 @@
         <input type="password" id="pinInput" class="form-control text-center fs-3 fw-bold" maxlength="6" placeholder="••••" autofocus>
       </div>
       <button class="btn btn-primary btn-submit w-100 mb-2" onclick="loginAdmin()">เข้าสู่ระบบ</button>
-      <a href="https://script.google.com/macros/s/AKfycby1H08UjuyaiNKM8qycv0S29xphROvwuRyVJin-ejrHEasYsYn-CeQUSj2XaMvx36Ybtg/exec" class="btn btn-link text-decoration-none text-muted small">← กลับไปหน้าตารางอาหารสำหรับคนในวิทยาลัย</a>
+      <a href="./" class="btn btn-link text-decoration-none text-muted small">← กลับไปหน้าตารางอาหารสำหรับคนในวิทยาลัย</a>
     </div>
 
     <!-- Admin Panel -->
@@ -46,7 +46,7 @@
           <p class="mb-0 text-white-50 small">วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา (PRTC-CCIS)</p>
         </div>
         <div>
-          <a href="https://script.google.com/macros/s/AKfycby1H08UjuyaiNKM8qycv0S29xphROvwuRyVJin-ejrHEasYsYn-CeQUSj2XaMvx36Ybtg/exec" class="btn btn-outline-light btn-sm rounded-pill px-3 me-2">หน้าตารางอาหาร</a>
+          <a href="./" class="btn btn-outline-light btn-sm rounded-pill px-3 me-2">หน้าตารางอาหาร</a>
           <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="logoutAdmin()">ออกจากระบบ</button>
         </div>
       </div>
@@ -221,7 +221,7 @@
               ${e.guestStatus}
             </span>
           </td>
-          <td text-align="center">
+          <td style="text-align: center;">
             <button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${e.id}')" title="แก้ไข">✏️</button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${e.id}')" title="ลบ">🗑️</button>
           </td>
@@ -276,15 +276,22 @@
         note: document.getElementById('note').value
       };
 
-      google.script.run.withSuccessHandler(res => {
-        alert(res.message);
-        if (res.success) {
-          resetAdminForm();
-          loadAdminEvents();
-        }
-        btn.disabled = false;
-        btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
-      }).saveCanteenEvent(formData, currentPin);
+      google.script.run
+        .withSuccessHandler(res => {
+          alert(res.message);
+          if (res.success) {
+            resetAdminForm();
+            loadAdminEvents();
+          }
+          btn.disabled = false;
+          btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
+        })
+        .withFailureHandler(err => {
+          alert('เกิดข้อผิดพลาด: ' + err.message);
+          btn.disabled = false;
+          btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
+        })
+        .saveCanteenEvent(formData, currentPin);
     }
 
     function deleteEvent(id) {
