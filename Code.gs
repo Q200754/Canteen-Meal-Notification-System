@@ -1,11 +1,19 @@
 const SHEET_NAME = 'Events';
-const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE'; // ใส่ Access Token จาก LINE Developers
-const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE'; // ใส่ ID กลุ่ม หรือ User ID ของ LINE
-const ADMIN_PIN = '1234'; // ตั้งรหัส PIN แอดมินสำหรับกรอก/แก้ไขข้อมูล
+const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE';
+const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE';
+const ADMIN_PIN = '1234';
 
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
+  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
   
+  // รองรับการดึงข้อมูล JSON ผ่าน fetch API (สำหรับ Vercel)
+  if (action === 'getEvents') {
+    var data = getCanteenEvents();
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (page === 'admin') {
     return HtmlService.createTemplateFromFile('Admin')
       .evaluate()
@@ -25,12 +33,10 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-// ตรวจสอบรหัสผ่าน PIN แอดมิน
 function checkAdminPin(pin) {
   return pin === ADMIN_PIN;
 }
 
-// ดึงรายการข้อมูลทั้งหมดจาก Google Sheets
 function getCanteenEvents() {
   let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) return [];
@@ -56,7 +62,6 @@ function getCanteenEvents() {
   });
 }
 
-// บันทึก / แก้ไขข้อมูลงานจัดเลี้ยง (ปรับปรุงให้บันทึกเร็วปรี๊ด ไม่ติดค้าง)
 function saveCanteenEvent(form, pin) {
   if (!checkAdminPin(pin)) {
     return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
@@ -64,15 +69,12 @@ function saveCanteenEvent(form, pin) {
 
   try {
     let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    
-    // สร้างแผ่นงาน Events ให้อัตโนมัติหากยังไม่มี
     if (!sheet) {
       sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_NAME);
       sheet.appendRow(['ID', 'Date', 'Time', 'Occasion', 'GuestName', 'HasFamily', 'GuestCount', 'MainMenu', 'SnackDessert', 'GuestStatus', 'Note']);
     }
 
     const id = form.id || 'PRTC-EVT-' + new Date().getTime();
-    
     let targetRow = -1;
     if (form.id) {
       const data = sheet.getDataRange().getValues();
@@ -85,17 +87,9 @@ function saveCanteenEvent(form, pin) {
     }
 
     const rowData = [
-      id,
-      form.date,
-      form.time,
-      form.occasion,
-      form.guestName,
-      form.hasFamily ? 'ใช่' : 'ไม่ใช่',
-      form.guestCount,
-      form.mainMenu,
-      form.snackDessert,
-      form.guestStatus,
-      form.note || ''
+      id, form.date, form.time, form.occasion, form.guestName,
+      form.hasFamily ? 'ใช่' : 'ไม่ใช่', form.guestCount,
+      form.mainMenu, form.snackDessert, form.guestStatus, form.note || ''
     ];
 
     if (targetRow > 0) {
@@ -104,25 +98,15 @@ function saveCanteenEvent(form, pin) {
       sheet.appendRow(rowData);
     }
 
-    // ส่ง LINE แบบแยกบล็อกการทำงาน ป้องกันหน้าเว็บค้าง
-    try {
-      sendLineNotification(form);
-    } catch(lineErr) {
-      Logger.log('Line Notification Skipped: ' + lineErr.toString());
-    }
-
+    try { sendLineNotification(form); } catch(e) {}
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
   } catch (err) {
-    return { success: false, message: 'เกิดข้อผิดพลาดในการบันทึก: ' + err.toString() };
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + err.toString() };
   }
 }
 
-// ลบรายการจัดเลี้ยง
 function deleteCanteenEvent(id, pin) {
-  if (!checkAdminPin(pin)) {
-    return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
-  }
-
+  if (!checkAdminPin(pin)) return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) return { success: false, message: 'ไม่พบแผ่นงาน' };
 
@@ -136,10 +120,8 @@ function deleteCanteenEvent(id, pin) {
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
 }
 
-// ส่งแจ้งเตือนผ่าน LINE Messaging API
 function sendLineNotification(data) {
   if (!LINE_CHANNEL_ACCESS_TOKEN || LINE_CHANNEL_ACCESS_TOKEN.includes('YOUR_')) return;
-
   let statusColor = '#28a745';
   if (data.guestStatus === 'ไม่มา/ยกเลิก') statusColor = '#dc3545';
   if (data.guestStatus === 'รอยืนยัน') statusColor = '#ffc107';
@@ -150,26 +132,21 @@ function sendLineNotification(data) {
     "contents": {
       "type": "bubble",
       "header": {
-        "type": "box",
-        "layout": "vertical",
-        "backgroundColor": statusColor,
+        "type": "box", "layout": "vertical", "backgroundColor": statusColor,
         "contents": [
           { "type": "text", "text": "📢 PRTC Canteen Catering Alert", "color": "#ffffff", "weight": "bold", "size": "sm" },
           { "type": "text", "text": `สถานะ: ${data.guestStatus}`, "color": "#ffffff", "size": "xs" }
         ]
       },
       "body": {
-        "type": "box",
-        "layout": "vertical",
+        "type": "box", "layout": "vertical",
         "contents": [
           { "type": "text", "text": data.occasion, "weight": "bold", "size": "md", "wrap": true },
           { "type": "separator", "margin": "md" },
           { "type": "text", "text": `📅 วันที่: ${data.date} (${data.time})`, "size": "sm", "margin": "md" },
           { "type": "text", "text": `👤 แขก/เจ้าภาพ: ${data.guestName} (${data.guestCount} ท่าน)`, "size": "sm" },
-          { "type": "text", "text": `👨‍👩‍👧‍👦 ผู้ติดตาม/ครอบครัว: ${data.hasFamily ? 'มาด้วย' : 'ไม่มี'}`, "size": "sm" },
           { "type": "text", "text": `🍱 เมนูอาหาร: ${data.mainMenu}`, "size": "sm", "wrap": true, "weight": "bold", "color": "#1b5e20", "margin": "md" },
-          { "type": "text", "text": `🍦 ของหวาน/ของทานเล่น: ${data.snackDessert || '-'}`, "size": "sm", "wrap": true, "color": "#e65100" },
-          { "type": "text", "text": `📝 หมายเหตุ: ${data.note || '-'}`, "size": "xs", "color": "#666666", "margin": "md", "wrap": true }
+          { "type": "text", "text": `🍦 ของหวาน/ของทานเล่น: ${data.snackDessert || '-'}`, "size": "sm", "wrap": true, "color": "#e65100" }
         ]
       }
     }
