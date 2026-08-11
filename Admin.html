@@ -96,7 +96,7 @@
             <div class="form-check">
               <input type="checkbox" class="form-check-input" id="hasFamily" name="hasFamily">
               <label class="form-check-label fw-medium" for="hasFamily">
-                👨‍👩‍👧‍👦 มีครอบครัว / ผู้ติดตามมาด้วย
+                👨‍👩‍👧‍👦 มีครอบครัว / ผู้ติดตามมาด้วย (ถ้ามี ติ๊กเครื่องหมายถูก)
               </label>
             </div>
           </div>
@@ -243,7 +243,7 @@
       document.getElementById('occasion').value = item.occasion;
       document.getElementById('guestName').value = item.guestName;
       document.getElementById('guestCount').value = item.guestCount;
-      document.getElementById('hasFamily').checked = item.hasFamily === 'ใช่';
+      document.getElementById('hasFamily').checked = (item.hasFamily === 'มี' || item.hasFamily === 'ใช่');
       document.getElementById('mainMenu').value = item.mainMenu;
       document.getElementById('snackDessert').value = item.snackDessert;
       document.getElementById('guestStatus').value = item.guestStatus;
