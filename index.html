@@ -5,28 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร</title>
   <style>
-    html, body {
+    body {
+      font-family: 'Prompt', sans-serif, system-ui;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
+      background-color: #f8f9fa;
+      color: #333;
     }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+    .loading-box {
+      text-align: center;
+      padding: 30px;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #004085;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <iframe id="appFrame" src=""></iframe>
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <h3 style="margin-bottom: 8px;">กำลังนำท่านเข้าสู่ระบบ PRTC-CCIS...</h3>
+    <p style="color: #6c757d; font-size: 14px;">วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา</p>
+  </div>
 
   <script>
-    // ดึง Parameter ต่อท้าย เช่น ?page=admin
+    // ดึง Parameter ทั้งหมด เช่น ?page=admin
     const urlParams = window.location.search;
-    const baseUrl = "https://script.google.com/macros/s/AKfycbzeqdLsPcZMePUnknJ19NueWcP2ZJV9WnuCJuSaSI1pgLU62fgbNIGiw8a5yFXo-GiTPQ/exec";
     
-    document.getElementById('appFrame').src = baseUrl + urlParams;
+    // URL หลักของ Google Apps Script Web App
+    const gasBaseUrl = "https://script.google.com/macros/s/AKfycbzeqdLsPcZMePUnknJ19NueWcP2ZJV9WnuCJuSaSI1pgLU62fgbNIGiw8a5yFXo-GiTPQ/exec";
+    
+    // เปลี่ยนหน้าไปยัง Google Apps Script ทันที (แก้ปัญหาหน้าขาวจาก iframe)
+    window.location.href = gasBaseUrl + urlParams;
   </script>
 </body>
 </html>
