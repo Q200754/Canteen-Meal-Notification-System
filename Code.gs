@@ -4,38 +4,48 @@ const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE';
 const ADMIN_PIN = '1234';
 
 function doGet(e) {
-  var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
-  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
-  var callback = (e && e.parameter && e.parameter.callback) ? e.parameter.callback : '';
-  
-  // รองรับการดึงข้อมูล JSONP สำหรับ Vercel
-  if (action === 'getEvents') {
-    var data = getCanteenEvents();
-    if (callback) {
-      return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  try {
+    var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
+    var callback = (e && e.parameter && e.parameter.callback) ? e.parameter.callback : '';
+    
+    // API สำหรับดึงข้อมูลผ่าน Vercel หรือ Fetch
+    if (action === 'getEvents') {
+      var data = getCanteenEvents();
+      if (callback) {
+        return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      return ContentService.createTextOutput(JSON.stringify(data))
+        .setMimeType(ContentService.MimeType.JSON);
     }
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
 
-  if (page === 'admin') {
-    return HtmlService.createTemplateFromFile('Admin')
+    // หน้า Admin
+    if (page === 'admin') {
+      return HtmlService.createTemplateFromFile('Admin')
+        .evaluate()
+        .setTitle('PRTC-CCIS | ระบบจัดการหลังบ้านแอดมิน')
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+    
+    // หน้าหลัก (Index)
+    return HtmlService.createTemplateFromFile('Index')
       .evaluate()
-      .setTitle('PRTC-CCIS | ระบบจัดการหลังบ้านแอดมิน')
+      .setTitle('PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-  
-  return HtmlService.createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
 
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  } catch (err) {
+    // ป้องกันหน้าขาว หากเกิด Error ให้พ่นข้อความออกมาแจ้งบนหน้าเว็บ
+    return HtmlService.createHtmlOutput(
+      '<div style="padding: 20px; font-family: sans-serif; color: red;">' +
+      '<h2>เกิดข้อผิดพลาดภายในระบบ Apps Script (doGet Error)</h2>' +
+      '<p><strong>สาเหตุ:</strong> ' + err.toString() + '</p>' +
+      '<p>โปรดตรวจสอบว่ามีไฟล์ Index.html และ Admin.html อยู่ในโปรเจกต์ถูกต้องหรือไม่</p>' +
+      '</div>'
+    );
+  }
 }
 
 function checkAdminPin(pin) {
@@ -43,28 +53,32 @@ function checkAdminPin(pin) {
 }
 
 function getCanteenEvents() {
-  let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-  
-  const rows = data.slice(1);
-  return rows.map((row, index) => {
-    return {
-      rowIndex: index + 2,
-      id: String(row[0]),
-      date: row[1] ? Utilities.formatDate(new Date(row[1]), Session.getScriptTimeZone(), 'yyyy-MM-dd') : '',
-      time: row[2],
-      occasion: row[3],
-      guestName: row[4],
-      hasFamily: row[5],
-      guestCount: row[6],
-      mainMenu: row[7],
-      snackDessert: row[8],
-      guestStatus: row[9],
-      note: row[10]
-    };
-  });
+  try {
+    let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    
+    const rows = data.slice(1);
+    return rows.map((row, index) => {
+      return {
+        rowIndex: index + 2,
+        id: String(row[0]),
+        date: row[1] ? Utilities.formatDate(new Date(row[1]), Session.getScriptTimeZone(), 'yyyy-MM-dd') : '',
+        time: row[2],
+        occasion: row[3],
+        guestName: row[4],
+        hasFamily: row[5],
+        guestCount: row[6],
+        mainMenu: row[7],
+        snackDessert: row[8],
+        guestStatus: row[9],
+        note: row[10]
+      };
+    });
+  } catch (e) {
+    return [];
+  }
 }
 
 function saveCanteenEvent(form, pin) {
