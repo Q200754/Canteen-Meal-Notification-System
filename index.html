@@ -89,12 +89,16 @@
               <small class="text-muted fw-semibold">📅 ${e.date} | ⏰ ${e.time}</small>
             </div>
             <h5 class="fw-bold text-dark mb-2">${e.occasion}</h5>
-            <p class="text-muted mb-2"><strong>เจ้าภาพ/แขก:</strong> ${e.guestName} (${e.guestCount} ท่าน)</p>
+            <p class="text-muted mb-2">
+              <strong>เจ้าภาพ/แขก:</strong> ${e.guestName} (${e.guestCount} ท่าน)
+              ${(e.hasFamily === 'มี' || e.hasFamily === 'ใช่') ? '<span class="badge bg-info-subtle text-info-emphasis ms-2">👨‍👩‍👧‍👦 มีครอบครัว/ผู้ติดตาม</span>' : ''}
+            </p>
             <hr class="my-2">
             <div class="row g-2 mt-1">
               <div class="col-md-6"><small class="text-muted d-block">🍱 รายการอาหารหลัก:</small><strong class="text-success">${e.mainMenu}</strong></div>
               <div class="col-md-6"><small class="text-muted d-block">🍦 ของหวาน / ของทานเล่น:</small><strong class="text-warning-emphasis">${e.snackDessert || '-'}</strong></div>
             </div>
+            ${e.note ? `<div class="mt-2 text-secondary small">📌 <strong>หมายเหตุ:</strong> ${e.note}</div>` : ''}
           </div>
         </div>
       `).join('');
