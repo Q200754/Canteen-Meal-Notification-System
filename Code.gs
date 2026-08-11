@@ -1,8 +1,11 @@
 const SPREADSHEET_ID = '1c1KshY9aaRBK-B-SbWA3mVuDJrtlQg9ZmAkB3mZXc2Q'; 
 const SHEET_NAME = 'Events';
-const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE';
-const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE';
-const ADMIN_PIN = '1234';
+const LINE_CHANNEL_ACCESS_TOKEN = 'VCTIfa5ni3lQTTKk3GqgvBwEhGV73iHAj5sSwd60qpjibP5JepzMDteKh6mu68fLXqQCDEnZa6Urntz0Dr4Oel7hituvdMEch2oCqAz9fBpqAiBaMvfTeBRtZu/omEAzekBC5OCnCUcu1EhZlM1YrAdB04t89/1O/w1cDnyilFU=';
+const TARGET_USER_OR_GROUP_ID = 'Uffe1be9bbe74df5dc7b9091612420bff';
+
+// กำหนด Username และ Password สำหรับแอดมิน
+const ADMIN_USERNAME = 'piangfah.admin';
+const ADMIN_PASSWORD = 'Prtc@2026';
 
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
@@ -25,8 +28,9 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function checkAdminPin(pin) {
-  return String(pin) === String(ADMIN_PIN);
+// ตรวจสอบ Username และ Password
+function checkAdminAuth(username, password) {
+  return String(username) === ADMIN_USERNAME && String(password) === ADMIN_PASSWORD;
 }
 
 function getCanteenEvents() {
@@ -58,8 +62,10 @@ function getCanteenEvents() {
   }
 }
 
-function saveCanteenEvent(form, pin) {
-  if (!checkAdminPin(pin)) return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
+function saveCanteenEvent(form, username, password) {
+  if (!checkAdminAuth(username, password)) {
+    return { success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
+  }
   try {
     let ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SHEET_NAME);
@@ -97,8 +103,8 @@ function saveCanteenEvent(form, pin) {
   }
 }
 
-function deleteCanteenEvent(id, pin) {
-  if (!checkAdminPin(pin)) return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
+function deleteCanteenEvent(id, username, password) {
+  if (!checkAdminAuth(username, password)) return { success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
   let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   if (!sheet) return { success: false, message: 'ไม่พบแผ่นงาน' };
 
