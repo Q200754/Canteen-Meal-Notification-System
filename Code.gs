@@ -1,7 +1,7 @@
 const SHEET_NAME = 'Events';
-const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE';
-const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE';
-const ADMIN_PIN = '1234';
+const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN_HERE'; // ใส่ Access Token จาก LINE Developers
+const TARGET_USER_OR_GROUP_ID = 'YOUR_TARGET_ID_HERE'; // ใส่ ID กลุ่ม หรือ User ID ของ LINE
+const ADMIN_PIN = '1234'; // ตั้งรหัส PIN แอดมินสำหรับกรอก/แก้ไขข้อมูล
 
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
@@ -25,12 +25,14 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+// ตรวจสอบรหัสผ่าน PIN แอดมิน
 function checkAdminPin(pin) {
   return pin === ADMIN_PIN;
 }
 
+// ดึงรายการข้อมูลทั้งหมดจาก Google Sheets
 function getCanteenEvents() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
@@ -54,7 +56,7 @@ function getCanteenEvents() {
   });
 }
 
-// บันทึกข้อมูลแบบรวดเร็ว ไม่รอกระบวนการ LINE
+// บันทึก / แก้ไขข้อมูลงานจัดเลี้ยง (ปรับปรุงให้บันทึกเร็วปรี๊ด ไม่ติดค้าง)
 function saveCanteenEvent(form, pin) {
   if (!checkAdminPin(pin)) {
     return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
@@ -63,7 +65,7 @@ function saveCanteenEvent(form, pin) {
   try {
     let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     
-    // ถ้ายังไม่มีแผ่นงาน Events ให้สร้างให้อัตโนมัติทันที
+    // สร้างแผ่นงาน Events ให้อัตโนมัติหากยังไม่มี
     if (!sheet) {
       sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_NAME);
       sheet.appendRow(['ID', 'Date', 'Time', 'Occasion', 'GuestName', 'HasFamily', 'GuestCount', 'MainMenu', 'SnackDessert', 'GuestStatus', 'Note']);
@@ -102,19 +104,20 @@ function saveCanteenEvent(form, pin) {
       sheet.appendRow(rowData);
     }
 
-    // ส่ง LINE แบบปลอดภัย (ถ้าพังก็ไม่ทำให้หน้าเว็บค้าง)
+    // ส่ง LINE แบบแยกบล็อกการทำงาน ป้องกันหน้าเว็บค้าง
     try {
       sendLineNotification(form);
     } catch(lineErr) {
-      Logger.log('Line Error Skipped: ' + lineErr);
+      Logger.log('Line Notification Skipped: ' + lineErr.toString());
     }
 
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
   } catch (err) {
-    return { success: false, message: 'เกิดข้อผิดพลาด: ' + err.toString() };
+    return { success: false, message: 'เกิดข้อผิดพลาดในการบันทึก: ' + err.toString() };
   }
 }
 
+// ลบรายการจัดเลี้ยง
 function deleteCanteenEvent(id, pin) {
   if (!checkAdminPin(pin)) {
     return { success: false, message: 'รหัสผ่าน PIN แอดมินไม่ถูกต้อง' };
@@ -133,8 +136,8 @@ function deleteCanteenEvent(id, pin) {
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
 }
 
+// ส่งแจ้งเตือนผ่าน LINE Messaging API
 function sendLineNotification(data) {
-  // ข้ามการส่งทันทีถ้าไม่ได้ตั้งค่า Token จริง เพื่อป้องกันการค้าง
   if (!LINE_CHANNEL_ACCESS_TOKEN || LINE_CHANNEL_ACCESS_TOKEN.includes('YOUR_')) return;
 
   let statusColor = '#28a745';
