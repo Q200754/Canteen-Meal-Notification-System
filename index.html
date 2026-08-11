@@ -22,7 +22,6 @@
       <h3 class="fw-bold mb-1">PRTC Canteen Catering Information System</h3>
       <p class="mb-2 text-white-50" style="font-size: 0.9rem;">ระบบสารสนเทศแจ้งการจัดเลี้ยงโรงอาหาร | วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา</p>
       
-      <!-- ปุ่มเข้าหน้าแอดมิน เรียกฟังก์ชัน goToAdmin() -->
       <button onclick="goToAdmin()" class="btn btn-sm btn-outline-light rounded-pill px-3 mt-1">
         ⚙️ เข้าสู่หน้าแอดมินบันทึกข้อมูล
       </button>
@@ -60,31 +59,40 @@
   </div>
 
   <script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzeqdLsPcZMePUnknJ19NueWcP2ZJV9WnuCJuSaSI1pgLU62fgbNIGiw8a5yFXo-GiTPQ/exec";
     let allEvents = [];
 
-    // ฟังก์ชันพาไปหน้า Admin อย่างปลอดภัย
     function goToAdmin() {
-      const currentUrl = window.location.href.split('?')[0];
-      window.location.href = currentUrl + '?page=admin';
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        window.location.href = window.location.href.split('?')[0] + '?page=admin';
+      } else {
+        window.location.href = GAS_API_URL + '?page=admin';
+      }
     }
 
     function loadEvents() {
       document.getElementById('eventsList').innerHTML = '<div class="text-center py-5 text-muted">กำลังดึงข้อมูลระบบ PRTC-CCIS...</div>';
-      
-      if (typeof google === 'undefined' || !google.script || !google.script.run) {
-        document.getElementById('eventsList').innerHTML = '<div class="alert alert-warning text-center border shadow-sm">ระบบกำลังแสดงผลผ่าน Vercel หรือไม่ได้เชื่อมต่อ Apps Script สตรีมมิง</div>';
-        return;
-      }
 
-      google.script.run
-        .withSuccessHandler(data => {
-          allEvents = data || [];
-          filterEvents();
-        })
-        .withFailureHandler(err => {
-          document.getElementById('eventsList').innerHTML = '<div class="alert alert-danger text-center border shadow-sm">เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message + '</div>';
-        })
-        .getCanteenEvents();
+      // กรณีเปิดบน Google Apps Script โดยตรง
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(data => {
+            allEvents = data || [];
+            filterEvents();
+          })
+          .getCanteenEvents();
+      } else {
+        // กรณีเปิดบน Vercel ให้ดึงแบบ fetch API
+        fetch(GAS_API_URL + '?action=getEvents')
+          .then(res => res.json())
+          .then(data => {
+            allEvents = data || [];
+            filterEvents();
+          })
+          .catch(err => {
+            document.getElementById('eventsList').innerHTML = '<div class="alert alert-danger text-center border shadow-sm">เกิดข้อผิดพลาดในการโหลดข้อมูลผ่าน Vercel</div>';
+          });
+      }
     }
 
     function filterEvents() {
