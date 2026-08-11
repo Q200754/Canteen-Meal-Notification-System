@@ -7,16 +7,21 @@ function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
   var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
   
+  // โหมดดึงข้อมูล JSON สำหรับ Vercel/Fetch
   if (action === 'getEvents') {
     var data = getCanteenEvents();
     return ContentService.createTextOutput(JSON.stringify(data))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // กำหนดไฟล์ HTML ที่จะโหลด (ใช้ createHtmlOutputFromFile เพื่อความรวดเร็วและไม่ค้างหน้า Loading)
   var fileName = (page === 'admin') ? 'Admin' : 'Index';
-  
+  var pageTitle = (page === 'admin') 
+    ? 'PRTC-CCIS | ระบบจัดการหลังบ้านแอดมิน' 
+    : 'PRTC-CCIS | ระบบแจ้งการจัดเลี้ยงโรงอาหาร วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา';
+
   return HtmlService.createHtmlOutputFromFile(fileName)
-    .setTitle('PRTC-CCIS | วิทยาลัยเทคโนโลยีพระมหาไถ่ พัทยา')
+    .setTitle(pageTitle)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -90,6 +95,7 @@ function saveCanteenEvent(form, pin) {
       sheet.appendRow(rowData);
     }
 
+    try { sendLineNotification(form); } catch(e) {}
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
   } catch (err) {
     return { success: false, message: 'เกิดข้อผิดพลาด: ' + err.toString() };
@@ -109,4 +115,47 @@ function deleteCanteenEvent(id, pin) {
     }
   }
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
+}
+
+function sendLineNotification(data) {
+  if (!LINE_CHANNEL_ACCESS_TOKEN || LINE_CHANNEL_ACCESS_TOKEN.includes('YOUR_')) return;
+  let statusColor = '#28a745';
+  if (data.guestStatus === 'ไม่มา/ยกเลิก') statusColor = '#dc3545';
+  if (data.guestStatus === 'รอยืนยัน') statusColor = '#ffc107';
+
+  const flexMessage = {
+    "type": "flex",
+    "altText": `[PRTC-CCIS] แจ้งข่าวการจัดเลี้ยง: ${data.occasion}`,
+    "contents": {
+      "type": "bubble",
+      "header": {
+        "type": "box", "layout": "vertical", "backgroundColor": statusColor,
+        "contents": [
+          { "type": "text", "text": "📢 PRTC Canteen Catering Alert", "color": "#ffffff", "weight": "bold", "size": "sm" },
+          { "type": "text", "text": `สถานะ: ${data.guestStatus}`, "color": "#ffffff", "size": "xs" }
+        ]
+      },
+      "body": {
+        "type": "box", "layout": "vertical",
+        "contents": [
+          { "type": "text", "text": data.occasion, "weight": "bold", "size": "md", "wrap": true },
+          { "type": "separator", "margin": "md" },
+          { "type": "text", "text": `📅 วันที่: ${data.date} (${data.time})`, "size": "sm", "margin": "md" },
+          { "type": "text", "text": `👤 แขก/เจ้าภาพ: ${data.guestName} (${data.guestCount} ท่าน)`, "size": "sm" },
+          { "type": "text", "text": `🍱 เมนูอาหาร: ${data.mainMenu}`, "size": "sm", "wrap": true, "weight": "bold", "color": "#1b5e20", "margin": "md" },
+          { "type": "text", "text": `🍦 ของหวาน/ของทานเล่น: ${data.snackDessert || '-'}`, "size": "sm", "wrap": true, "color": "#e65100" }
+        ]
+      }
+    }
+  };
+
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    'method': 'post',
+    'headers': {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN
+    },
+    'payload': JSON.stringify({ "to": TARGET_USER_OR_GROUP_ID, "messages": [flexMessage] }),
+    'muteHttpExceptions': true
+  });
 }
