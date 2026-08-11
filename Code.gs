@@ -3,7 +3,6 @@ const SHEET_NAME = 'Events';
 const LINE_CHANNEL_ACCESS_TOKEN = 'VCTIfa5ni3lQTTKk3GqgvBwEhGV73iHAj5sSwd60qpjibP5JepzMDteKh6mu68fLXqQCDEnZa6Urntz0Dr4Oel7hituvdMEch2oCqAz9fBpqAiBaMvfTeBRtZu/omEAzekBC5OCnCUcu1EhZlM1YrAdB04t89/1O/w1cDnyilFU=';
 const TARGET_USER_OR_GROUP_ID = 'Uffe1be9bbe74df5dc7b9091612420bff';
 
-// กำหนด Username และ Password สำหรับแอดมิน
 const ADMIN_USERNAME = 'piangfah.admin';
 const ADMIN_PASSWORD = 'Prtc@2026';
 
@@ -28,7 +27,6 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ตรวจสอบ Username และ Password
 function checkAdminAuth(username, password) {
   return String(username) === ADMIN_USERNAME && String(password) === ADMIN_PASSWORD;
 }
@@ -42,7 +40,6 @@ function getCanteenEvents() {
     
     const rows = data.slice(1);
     return rows.map((row, index) => {
-      // แปลงรูปแบบวันที่ปลอดภัย
       let dateStr = '';
       if (row[1]) {
         try {
@@ -52,7 +49,6 @@ function getCanteenEvents() {
         }
       }
 
-      // แปลงรูปแบบเวลาปลอดภัย
       let timeStr = '';
       if (row[2]) {
         if (row[2] instanceof Date) {
@@ -73,7 +69,7 @@ function getCanteenEvents() {
         guestCount: row[6] || 0,
         mainMenu: String(row[7] || ''),
         snackDessert: String(row[8] || ''),
-        guestStatus: String(row[9] || 'มา'),
+        guestStatus: String(row[9] || 'แขกมา'),
         note: row[10] ? String(row[10]) : ''
       };
     });
@@ -118,7 +114,6 @@ function saveCanteenEvent(form, username, password) {
       sheet.appendRow(rowData);
     }
 
-    // ส่งการแจ้งเตือน LINE Alert เมื่อบันทึกสำเร็จ
     try { sendLineNotification(form); } catch(e) {}
 
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
@@ -142,13 +137,12 @@ function deleteCanteenEvent(id, username, password) {
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
 }
 
-// ฟังก์ชันส่งการแจ้งเตือน Flex Message เข้า LINE
 function sendLineNotification(data) {
   if (!LINE_CHANNEL_ACCESS_TOKEN || !TARGET_USER_OR_GROUP_ID) return;
   
-  let statusColor = '#28a745';
-  if (data.guestStatus === 'ไม่มา/ยกเลิก') statusColor = '#dc3545';
-  if (data.guestStatus === 'รอยืนยัน') statusColor = '#ffc107';
+  let statusColor = '#28a745'; // เขียว (แขกมา)
+  if (data.guestStatus === 'แขกไม่สะดวกมา' || data.guestStatus === 'ไม่มา') statusColor = '#fd7e14'; // ส้ม
+  if (data.guestStatus === 'แขกยกเลิก' || data.guestStatus === 'ยกเลิกงาน' || data.guestStatus === 'ไม่มา/ยกเลิก') statusColor = '#dc3545'; // แดง
 
   const flexMessage = {
     "type": "flex",
