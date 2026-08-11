@@ -177,6 +177,10 @@
       const pin = document.getElementById('pinInput').value;
       if (!pin) return alert('กรุณากรอกรหัส PIN');
 
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        return alert('ไม่สามารถเชื่อมต่อ Google Apps Script ได้');
+      }
+
       google.script.run
         .withSuccessHandler(isValid => {
           if (isValid) {
@@ -189,6 +193,9 @@
             alert('รหัส PIN ไม่ถูกต้อง!');
           }
         })
+        .withFailureHandler(err => {
+          alert('เกิดข้อผิดพลาด: ' + (err.message || err.toString()));
+        })
         .checkAdminPin(pin);
     }
 
@@ -200,6 +207,8 @@
     }
 
     function loadAdminEvents() {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
       google.script.run
         .withSuccessHandler(data => {
           adminEvents = data || [];
@@ -280,6 +289,13 @@
         note: document.getElementById('note').value
       };
 
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        alert('ไม่สามารถเชื่อมต่อ Google Apps Script ได้');
+        btn.disabled = false;
+        btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
+        return;
+      }
+
       google.script.run
         .withSuccessHandler(res => {
           alert(res.message);
@@ -291,7 +307,7 @@
           btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
         })
         .withFailureHandler(err => {
-          alert('เกิดข้อผิดพลาด: ' + err.toString());
+          alert('เกิดข้อผิดพลาด: ' + (err.message || err.toString()));
           btn.disabled = false;
           btn.innerText = '💾 บันทึกข้อมูล & ส่ง LINE Alert';
         })
@@ -300,6 +316,7 @@
 
     function deleteEvent(id) {
       if (!confirm('คุณต้องการลบรายการจัดเลี้ยงนี้ใช่หรือไม่?')) return;
+      if (typeof google === 'undefined' || !google.script || !google.script.run) return;
 
       google.script.run
         .withSuccessHandler(res => {
