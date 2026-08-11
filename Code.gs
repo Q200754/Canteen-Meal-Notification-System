@@ -137,35 +137,48 @@ function deleteCanteenEvent(id, username, password) {
   return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
 }
 
+// ฟังก์ชันส่งแจ้งเตือนเข้า LINE การ์ดแบบใหม่ตามที่ต้องการ
 function sendLineNotification(data) {
   if (!LINE_CHANNEL_ACCESS_TOKEN || !TARGET_USER_OR_GROUP_ID) return;
   
-  let statusColor = '#28a745'; // เขียว (แขกมา)
-  if (data.guestStatus === 'แขกไม่สะดวกมา' || data.guestStatus === 'ไม่มา') statusColor = '#fd7e14'; // ส้ม
-  if (data.guestStatus === 'แขกยกเลิก' || data.guestStatus === 'ยกเลิกงาน' || data.guestStatus === 'ไม่มา/ยกเลิก') statusColor = '#dc3545'; // แดง
+  let headerColor = '#004085'; // น้ำเงินเข้มวิทยาลัย
+  if (data.guestStatus === 'แขกไม่สะดวกมา' || data.guestStatus === 'ไม่มา') headerColor = '#fd7e14'; // ส้ม
+  if (data.guestStatus === 'แขกยกเลิก' || data.guestStatus === 'ยกเลิกงาน') headerColor = '#dc3545'; // แดง
+
+  const hasFamilyText = data.hasFamily ? 'มี' : 'ไม่มี';
+  const snackText = data.snackDessert ? data.snackDessert : '-';
+  const noteText = data.note ? data.note : '-';
 
   const flexMessage = {
     "type": "flex",
-    "altText": `[PRTC-CCIS] แจ้งข่าวการจัดเลี้ยง: ${data.occasion}`,
+    "altText": `[PRTC-CCIS] แจ้งการจัดเลี้ยง: ${data.occasion}`,
     "contents": {
       "type": "bubble",
       "header": {
-        "type": "box", "layout": "vertical", "backgroundColor": statusColor,
+        "type": "box",
+        "layout": "vertical",
+        "backgroundColor": headerColor,
+        "paddingAll": "15px",
         "contents": [
-          { "type": "text", "text": "📢 PRTC Canteen Catering Alert", "color": "#ffffff", "weight": "bold", "size": "sm" },
-          { "type": "text", "text": `สถานะ: ${data.guestStatus}`, "color": "#ffffff", "size": "xs" }
+          { "type": "text", "text": "📢 PRTC Canteen Catering Alert", "color": "#ffffff", "weight": "bold", "size": "md" }
         ]
       },
       "body": {
-        "type": "box", "layout": "vertical",
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "md",
+        "paddingAll": "15px",
         "contents": [
-          { "type": "text", "text": data.occasion, "weight": "bold", "size": "md", "wrap": true },
-          { "type": "separator", "margin": "md" },
-          { "type": "text", "text": `📅 วันที่: ${data.date} (${data.time})`, "size": "sm", "margin": "md" },
-          { "type": "text", "text": `👤 แขก/เจ้าภาพ: ${data.guestName} (${data.guestCount} ท่าน)`, "size": "sm" },
-          { "type": "text", "text": `👨‍👩‍👧‍👦 ผู้ติดตาม: ${data.hasFamily ? 'มี' : 'ไม่มี'}`, "size": "sm" },
-          { "type": "text", "text": `🍱 เมนูอาหาร: ${data.mainMenu}`, "size": "sm", "wrap": true, "weight": "bold", "color": "#1b5e20", "margin": "md" },
-          { "type": "text", "text": `🍦 ของหวาน/ทานเล่น: ${data.snackDessert || '-'}`, "size": "sm", "wrap": true, "color": "#e65100" }
+          { "type": "text", "text": `📅 วันที่จัดเลี้ยง: ${data.date}`, "size": "sm", "wrap": true },
+          { "type": "text", "text": `⏰ เวลาช่วงที่จัด: ${data.time}`, "size": "sm", "wrap": true },
+          { "type": "text", "text": `🎉 เนื่องในโอกาส / งาน: ${data.occasion}`, "size": "sm", "weight": "bold", "color": "#004085", "wrap": true },
+          { "type": "text", "text": `👤 ชื่อแขกผู้มีเกียรติ / เจ้าภาพ: ${data.guestName}`, "size": "sm", "wrap": true },
+          { "type": "text", "text": `👥 จำนวนแขก (คน): ${data.guestCount} คน`, "size": "sm", "wrap": true },
+          { "type": "text", "text": `👨‍👩‍👧‍👦 มีครอบครัว / ผู้ติดตาม: ${hasFamilyText}`, "size": "sm", "wrap": true },
+          { "type": "text", "text": `🍱 รายการอาหารหลัก: ${data.mainMenu}`, "size": "sm", "weight": "bold", "color": "#1b5e20", "wrap": true },
+          { "type": "text", "text": `🍦 ของกินเล่น / ของหวาน: ${snackText}`, "size": "sm", "color": "#e65100", "wrap": true },
+          { "type": "text", "text": `📌 สถานะการมาของแขก: ${data.guestStatus}`, "size": "sm", "weight": "bold", "wrap": true },
+          { "type": "text", "text": `📝 หมายเหตุ: ${noteText}`, "size": "sm", "color": "#6c757d", "wrap": true }
         ]
       }
     }
