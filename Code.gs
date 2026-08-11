@@ -6,10 +6,16 @@ const ADMIN_PIN = '1234';
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
   var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : '';
+  var callback = (e && e.parameter && e.parameter.callback) ? e.parameter.callback : '';
   
-  // รองรับการดึงข้อมูล JSON ผ่าน fetch API (สำหรับ Vercel)
+  // รองรับการดึงข้อมูล JSON / JSONP ข้ามโดเมนสำหรับ Vercel
   if (action === 'getEvents') {
     var data = getCanteenEvents();
+    if (callback) {
+      // ใช้ JSONP เพื่อหลีกเลี่ยงปัญหา CORS บล็อกบน Vercel
+      return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
     return ContentService.createTextOutput(JSON.stringify(data))
       .setMimeType(ContentService.MimeType.JSON);
   }
