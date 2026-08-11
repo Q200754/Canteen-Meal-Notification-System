@@ -70,7 +70,6 @@
       }
     }
 
-    // Callback รับข้อมูลจาก JSONP
     function handleJSONPResponse(data) {
       allEvents = data || [];
       filterEvents();
@@ -79,7 +78,6 @@
     function loadEvents() {
       document.getElementById('eventsList').innerHTML = '<div class="text-center py-5 text-muted">กำลังดึงข้อมูลระบบ PRTC-CCIS...</div>';
 
-      // กรณีเปิดบน Apps Script โดยตรง
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(data => {
@@ -88,7 +86,6 @@
           })
           .getCanteenEvents();
       } else {
-        // กรณีเปิดบน Vercel ให้ดึงข้อมูลผ่าน JSONP สคริปต์แท็ก (ทะลุ CORS 100%)
         const oldScript = document.getElementById('jsonp-script');
         if (oldScript) oldScript.remove();
 
